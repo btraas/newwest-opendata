@@ -2,24 +2,36 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="a00968178.comp3717.bcit.ca.opendata">
 
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="NewWest Open Data"
+        android:label="Open Data"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme.ListActivity.ActionBar">
-        <activity android:name=".CategoriesActivity"
-            android:theme="@style/AppTheme.ListActivity.ActionBar"
-            >
+        android:theme="@style/AppTheme">
+        <provider
+            android:name="a00968178.comp3717.bcit.ca.opendata.databases.CustomContentProvider"
+            android:authorities="a00968178.comp3717.bcit.ca.opendata"
+            android:enabled="true"
+            android:exported="false">
+        </provider>
+
+        <activity android:name=".CategoriesActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity   android:name=".DatasetsActivity"
-                    android:parentActivityName="CategoriesActivity"
-            ></activity>
+        <activity
+            android:name=".DatasetsActivity"
+            android:parentActivityName=".CategoriesActivity" />
+        <activity
+            android:name=".SingleDatasetActivity"
+            android:parentActivityName=".DatasetsActivity" />
+        <activity android:name=".DatasetWebview"
+            android:parentActivityName=".SingleDatasetActivity"></activity>
     </application>
 
 </manifest>
