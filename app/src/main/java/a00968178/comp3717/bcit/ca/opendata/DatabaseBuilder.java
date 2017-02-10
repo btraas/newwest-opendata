@@ -1,13 +1,25 @@
-package a00968178.comp3717.bcit.ca.opendata.databases;
+package a00968178.comp3717.bcit.ca.opendata;
 
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.AsyncTask;
+import android.os.Handler;
+import android.util.Log;
+import android.widget.Toast;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+import java.io.IOException;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 
-import a00968178.comp3717.bcit.ca.opendata.CategoriesOpenHelper;
-import a00968178.comp3717.bcit.ca.opendata.DatasetsOpenHelper;
+
+import a00968178.comp3717.bcit.ca.opendata.databases.OpenHelper;
 
 
 /**
@@ -15,6 +27,22 @@ import a00968178.comp3717.bcit.ca.opendata.DatasetsOpenHelper;
  */
 
 public final class DatabaseBuilder {
+
+
+    private static final String TAG = DatabaseBuilder.class.getName();
+
+    private static final String OPENDATA_DOMAIN = "opendata.newwestcity.ca";
+    private static final String CATEGORIES_URL = "http://"+OPENDATA_DOMAIN+"/categories";
+    private static final String CATEGORIES_SELECT = "body .container-fluid > .nav li > a";
+
+    private static final String CATEGORY_NAME_SELECT = "body h1";
+    private static final String DATASETS_SELECT = "body .container-fluid h3 > a";
+    private static final String DATASETS_DESC_SELECT = "body > .container-fluid > p";
+
+    private static final int MAX_ERROR_TOAST = 3; // max error pages to show on Toast.
+
+
+
 
     private OpenHelper categoriesHelper;
     private OpenHelper datasetsHelper;
@@ -30,10 +58,12 @@ public final class DatabaseBuilder {
         dsDB  = datasetsHelper.getWritableDatabase();
     }
 
-    private void insertCategory(int id, String name) {
+
+    private void insertCategory(int id, String name, int count) {
         HashMap<String, String> hm = new HashMap<String, String>();
         hm.put("_id", ""+id);
         hm.put("category_name", name);
+        hm.put("dataset_count", ""+count);
         categoriesHelper.insert(catDB, hm);
     }
 
@@ -52,8 +82,8 @@ public final class DatabaseBuilder {
 
     public void cleanup() {
 
-        categoriesHelper.rebuildTable(categoriesHelper.getWritableDatabase());
-        datasetsHelper.rebuildTable(datasetsHelper.getWritableDatabase());
+        categoriesHelper.rebuildTable();
+        datasetsHelper.rebuildTable();
     }
 
     public void populateCategories() {
@@ -63,7 +93,7 @@ public final class DatabaseBuilder {
         OpenHelper helper = categoriesHelper;
 
         db = helper.getWritableDatabase();
-        numEntries = helper.getNumberOfRows(db);
+        numEntries = helper.getNumberOfRows();
 
         if(numEntries == 0)
         {
@@ -72,18 +102,18 @@ public final class DatabaseBuilder {
             try
             {
                 int i = 0;
-                insertCategory(++i, "Business and Economy");
-                insertCategory(++i, "City Government");
-                insertCategory(++i, "Community");
-                insertCategory(++i, "Electrical");
-                insertCategory(++i, "Environment");
-                insertCategory(++i, "Finance");
-                insertCategory(++i, "Heritage");
-                insertCategory(++i, "Lands and Development");
-                insertCategory(++i, "Parks and Recreation");
-                insertCategory(++i, "Public Safety");
-                insertCategory(++i, "Transportation");
-                insertCategory(++i, "Utilities");
+                insertCategory(++i, "Business and Economy" ,12);
+                insertCategory(++i, "City Government", 7);
+                insertCategory(++i, "Community", 6);
+                insertCategory(++i, "Electrical", 1);
+                insertCategory(++i, "Environment", 1);
+                insertCategory(++i, "Finance", 3);
+                insertCategory(++i, "Heritage", 3);
+                insertCategory(++i, "Lands and Development", 14);
+                insertCategory(++i, "Parks and Recreation", 11);
+                insertCategory(++i, "Public Safety", 8);
+                insertCategory(++i, "Transportation", 17);
+                insertCategory(++i, "Utilities", 9);
 
                 db.setTransactionSuccessful();
             }
@@ -96,6 +126,123 @@ public final class DatabaseBuilder {
         db.close();
     }
 
+
+// So we can end db transactions.
+    public int sync() throws IOException {
+
+        int result = -1;
+
+        categoriesHelper.getWritableDatabase().beginTransaction();
+        datasetsHelper.getWritableDatabase().beginTransaction();
+
+        try {
+
+            cleanup(); // delete current data
+            result = syncHandler();
+            categoriesHelper.getWritableDatabase().setTransactionSuccessful();
+            datasetsHelper.getWritableDatabase().setTransactionSuccessful();
+        } catch (IOException e) {
+            throw new IOException(e);
+        } finally {
+            categoriesHelper.getWritableDatabase().endTransaction();
+            datasetsHelper.getWritableDatabase().endTransaction();
+        }
+        return result;
+    }
+
+    private int syncHandler() throws IOException {
+        //InputStream categories = httpInputStream(CATEGORIES_URL);
+
+        int originalCategoryCount = (int)categoriesHelper.getNumberOfRows();
+        int originalDatasetCount   = (int)datasetsHelper.getNumberOfRows();
+
+        Log.d(TAG, "categories: "+originalCategoryCount+" datasets: "+originalDatasetCount);
+
+        int categoryCount = 0;
+        int datasetCount = 0;
+
+
+        ArrayList<String> failedCategories = new ArrayList<String>();
+        ArrayList<String> failedDatasets = new ArrayList<String>();
+
+        try {
+            Elements categories = Jsoup.connect(CATEGORIES_URL).get().select(CATEGORIES_SELECT);
+            for (Element category : categories) {
+                Log.d(TAG, "Category "+(categoryCount+1));
+
+                String link = category.attr("href");
+
+                try {
+                    Document categoryDoc = Jsoup.connect(link).get();
+
+                    String name = categoryDoc.select(CATEGORY_NAME_SELECT).first().text().replace("Datasets", "").trim();
+                    if(name.equals("")) throw new IOException("Category "+categoryCount+" has no name!");
+
+                    Elements datasets = categoryDoc.select(DATASETS_SELECT);
+                    insertCategory(++categoryCount, name, datasets.size());
+
+                    for (Element dataset : datasets) {
+                        Log.d(TAG, "Dataset "+(datasetCount+1));
+
+                        String link2 = dataset.attr("href");
+
+                        try {
+                            Document datasetDoc = Jsoup.connect(link2).get();
+                            String datasetName = dataset.text();
+                            String datasetDesc = datasetDoc.select(DATASETS_DESC_SELECT).text();
+
+                            insertDataset(++datasetCount, categoryCount, datasetName, datasetDesc, link2);
+
+                        } catch (IOException e) {
+                            failedDatasets.add(dataset.text());
+                        }
+
+
+
+                    }
+                } catch (IOException e) {
+                    failedCategories.add(category.text().replaceAll("[0-9]", ""));
+                }
+
+
+            }
+        } catch (IOException e) {
+            throw new IOException("Unable to connect to "+OPENDATA_DOMAIN);
+        }
+
+
+        if(failedCategories.size() > 0) {
+            String failed = "Failed ot load ("+failedCategories.size()+") Categories: ";
+
+            int i;
+            for(i = 0; i <= MAX_ERROR_TOAST && i < failedCategories.size(); i++) {
+                failed += failedCategories.get(i);
+                if(i+1 != MAX_ERROR_TOAST && i+1 < failedCategories.size()) failed += ", ";
+            }
+            if(i < failedCategories.size()) failed += "...";
+
+            throw new IOException(failed);
+
+        } else if (failedDatasets.size() > 0) {
+            String failed = "Failed ot load ("+failedDatasets.size()+") Datasets: ";
+
+            int i;
+            for(i = 0; i <= MAX_ERROR_TOAST && i < failedDatasets.size(); i++) {
+                failed += failedDatasets.get(i);
+                if(i+1 != MAX_ERROR_TOAST && i+1 < failedDatasets.size()) failed += ", ";
+            }
+            if(i < failedDatasets.size()) failed += "...";
+
+            throw new IOException(failed);
+        }
+
+        Log.d(TAG, "orig dataset: "+originalDatasetCount+" now datasets: "+datasetCount);
+
+        return datasetCount - originalDatasetCount;
+    }
+
+
+
     public void populateDatasets() {
         final SQLiteDatabase db;
         final long           numEntries;
@@ -103,7 +250,7 @@ public final class DatabaseBuilder {
         OpenHelper helper = datasetsHelper;
 
         db = helper.getWritableDatabase();
-        numEntries = helper.getNumberOfRows(db);
+        numEntries = helper.getNumberOfRows();
 
         if(numEntries == 0)
         {

@@ -119,9 +119,9 @@ public class DatasetsActivity extends AppCompatActivity implements AdapterView.O
 */
         //setListAdapter(new ArrayAdapter(this, android.R.layout.simple_list_item_1, list));
 
-        db = openHelper.getWritableDatabase();
+        //db = openHelper.getWritableDatabase();
         //openHelper.limit("category_id", categoryId);
-        numEntries = openHelper.getNumberOfRows(db);
+        //numEntries = openHelper.getNumberOfRows();
 
 
 
@@ -130,7 +130,7 @@ public class DatasetsActivity extends AppCompatActivity implements AdapterView.O
        // Toast.makeText(getApplicationContext(), "Number of entries: " + numEntries, Toast.LENGTH_LONG).show();
 
 
-        db.close();
+        //db.close();
 
         //display();
 

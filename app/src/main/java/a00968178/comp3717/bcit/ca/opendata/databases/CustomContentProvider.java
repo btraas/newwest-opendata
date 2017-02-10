@@ -63,12 +63,12 @@ public class CustomContentProvider
     {
         final Cursor cursor;
 
-        Log.d(TAG,"query: "+uri.getPath());
-        if(projection != null && projection.length > 0) Log.d(TAG, "proj: "+projection[0]);
-        Log.d(TAG, "selection: "+selection);
-        if(selectionArgs != null && selectionArgs.length > 0) Log.d(TAG, "args: "+selectionArgs[0]);
+        //Log.d(TAG,"query: "+uri.getPath());
+        //if(projection != null && projection.length > 0) Log.d(TAG, "proj: "+projection[0]);
+        //Log.d(TAG, "selection: "+selection);
+        //if(selectionArgs != null && selectionArgs.length > 0) Log.d(TAG, "args: "+selectionArgs[0]);
 
-        Log.d(TAG, "segmenT: "+uri.getLastPathSegment());
+        //Log.d(TAG, "segmenT: "+uri.getLastPathSegment());
 
         switch (uriMatcher.match(uri))
         {

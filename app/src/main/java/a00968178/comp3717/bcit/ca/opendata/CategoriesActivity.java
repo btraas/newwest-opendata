@@ -4,24 +4,31 @@ import android.app.LoaderManager;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
 
+
+import java.io.IOException;
 
 import a00968178.comp3717.bcit.ca.opendata.databases.CustomContentProvider;
 import a00968178.comp3717.bcit.ca.opendata.databases.CustomLoaderCallbacks;
-import a00968178.comp3717.bcit.ca.opendata.databases.DatabaseBuilder;
 
 public class CategoriesActivity extends AppCompatActivity implements AdapterView.OnItemClickListener {
 
    // String[] list = Categories.getNames();
     private static final String TAG = CategoriesActivity.class.getName();
+    private static boolean FIRST_TIME = true;
 
     private ListView listView;
     private CategoriesOpenHelper     openHelper;
@@ -34,7 +41,7 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
 
 
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.content_categories);
+        setContentView(R.layout.activity_categories);
 
 
 
@@ -54,8 +61,8 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
 
         openHelper = new CategoriesOpenHelper(getApplicationContext());
 
-        adapter = new SimpleCursorAdapter(getBaseContext(),
-                android.R.layout.simple_list_item_1,
+        adapter = new CustomAdapter(getBaseContext(),
+                R.layout.category_row,
                 null,
                 new String[]
                         {
@@ -64,8 +71,8 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
                 new int[]
                         {
                                 android.R.id.text1,
-                        },
-                0);
+                        }
+                );
 
         listView.setAdapter(adapter);
 
@@ -80,7 +87,7 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
 
 
         db = openHelper.getWritableDatabase();
-        numEntries = openHelper.getNumberOfRows(db);
+        numEntries = openHelper.getNumberOfRows();
 
 
 
@@ -88,11 +95,16 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
 
        // Toast.makeText(getApplicationContext(), "Number of entries: " + numEntries, Toast.LENGTH_LONG).show();
 
-        DatabaseBuilder dbb = new DatabaseBuilder(getApplicationContext());
+        if(FIRST_TIME) {
 
-        dbb.cleanup(); // Delete tables
-        dbb.populateCategories();   // insert data if not exists
-        dbb.populateDatasets(); // insert data if not exists
+            FIRST_TIME = false;
+
+            DatabaseBuilder dbb = new DatabaseBuilder(getApplicationContext());
+
+            dbb.cleanup(); // Delete tables
+            dbb.populateCategories();   // insert data if not exists
+            dbb.populateDatasets(); // insert data if not exists
+        }
 
         display();
 
@@ -127,7 +139,8 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
     {
         Log.d(TAG, "onItemClick begin");
 
-        String text = ((TextView)view).getText().toString();
+        String text = ((TextView)(((RelativeLayout)view).findViewById(R.id.category_name))).getText().toString();
+        //String text = ((TextView)view).getText().toString();
         //((TextView)view).get
 
 
@@ -146,6 +159,53 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
         startActivity(intent);
 
         Log.d(TAG, "onItemClick end for id: "+id);
+    }
+
+    private class SyncJob extends AsyncTask<String, Void, String> {
+
+        @Override
+        protected String doInBackground(String[] params) {
+            // do above Server call here
+
+            int result = 0;
+            int datasets = (int)(new DatasetsOpenHelper(getApplicationContext())).getNumberOfRows();
+
+            try {
+                result = (new DatabaseBuilder(getApplicationContext())).sync();
+            } catch (IOException e) {
+                return "Error: " + e.getMessage();
+            }
+
+            int updated = result - datasets;
+
+            if(updated == 0) return "Already up-to-date";
+            else return "Success: Updated "+updated+" datasets";
+        }
+
+        @Override
+        protected void onPostExecute(String message) {
+            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
+            findViewById(R.id.sync_button).clearAnimation();
+
+            finish();
+            startActivity(getIntent()); // show changes
+
+        }
+    }
+
+    public void sync(View v) {
+        int count = 0;
+
+        Toast.makeText(getApplicationContext(), "Downloading datasets...", Toast.LENGTH_SHORT).show();
+
+        Animation sync = AnimationUtils.loadAnimation(this, R.anim.sync);
+        v.startAnimation(sync);
+
+        //count = DatabaseBuilder.sync();
+
+        SyncJob job = new SyncJob();
+
+        job.execute();
     }
 
 }

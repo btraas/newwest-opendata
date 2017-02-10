@@ -7,6 +7,7 @@ import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
+import android.provider.ContactsContract;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -130,16 +131,31 @@ public abstract class OpenHelper
     @Override
     public SQLiteDatabase getReadableDatabase() {
 
+        return getWritableDatabase();
+        /*
         if(readDatabase == null) readDatabase = super.getReadableDatabase();
         return readDatabase;
+        */
     }
 
-    public long getNumberOfRows(final SQLiteDatabase db)
+    public long getNumberOfRows()
+    {
+        return getNumberOfRows(null, null);
+    }
+
+    public long getNumberOfRows(String selection,
+                                String[] args)
     {
         final long numEntries;
+        final SQLiteDatabase db = getReadableDatabase();
 
         this.onCreate(db);
-        numEntries = DatabaseUtils.queryNumEntries(db, this.tableName);
+        //numEntries = DatabaseUtils.queryNumEntries(db, this.tableName);
+
+        //if(selection == null && args == null) numEntries = DatabaseUtils.queryNumEntries(db, this.tableName);
+        //else if(args == null) numEntries = DatabaseUtils.queryNumEntries(db, this.tableName, selection);
+        //else
+        numEntries = DatabaseUtils.queryNumEntries(db, this.tableName, selection, args);
 
         return (numEntries);
     }
@@ -159,14 +175,18 @@ public abstract class OpenHelper
 
 
 
-    public void deleteTable(final SQLiteDatabase db) {
+    public void deleteTable() {
+        SQLiteDatabase db = getWritableDatabase();
+
         String SQL = "DROP TABLE IF EXISTS "+this.tableName;
                 Log.d(TAG, "Executing SQL: " + SQL);
         db.execSQL(SQL);
     }
 
-    public void rebuildTable(final SQLiteDatabase db) {
-        this.deleteTable(db);
+    public void rebuildTable() {
+        SQLiteDatabase db = getWritableDatabase();
+
+        this.deleteTable();
         this.onCreate(db);
     }
 
