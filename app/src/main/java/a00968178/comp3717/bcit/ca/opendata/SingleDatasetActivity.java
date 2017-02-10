@@ -1,9 +1,7 @@
 package a00968178.comp3717.bcit.ca.opendata;
 
-import android.app.LoaderManager;
 import android.content.Intent;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -12,14 +10,9 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
-import android.widget.Toast;
-
-import java.util.Arrays;
-import java.util.List;
 
 import a00968178.comp3717.bcit.ca.opendata.databases.*;
 import a00968178.comp3717.bcit.ca.opendata.databases.CustomContentProvider;
-import a00968178.comp3717.bcit.ca.opendata.databases.datasets.DatasetsOpenHelper;
 
 
 public class SingleDatasetActivity extends AppCompatActivity  {

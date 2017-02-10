@@ -1,4 +1,4 @@
-package a00968178.comp3717.bcit.ca.opendata.databases.datasets;
+package a00968178.comp3717.bcit.ca.opendata;
 
 import android.content.Context;
 

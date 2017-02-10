@@ -6,8 +6,8 @@ import android.database.sqlite.SQLiteDatabase;
 
 import java.util.HashMap;
 
-import a00968178.comp3717.bcit.ca.opendata.databases.categories.CategoriesOpenHelper;
-import a00968178.comp3717.bcit.ca.opendata.databases.datasets.DatasetsOpenHelper;
+import a00968178.comp3717.bcit.ca.opendata.CategoriesOpenHelper;
+import a00968178.comp3717.bcit.ca.opendata.DatasetsOpenHelper;
 
 
 /**

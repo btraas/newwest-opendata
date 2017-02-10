@@ -2,7 +2,6 @@ package a00968178.comp3717.bcit.ca.opendata;
 
 import android.app.LoaderManager;
 import android.content.Intent;
-import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -16,9 +15,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import a00968178.comp3717.bcit.ca.opendata.databases.CustomContentProvider;
-import a00968178.comp3717.bcit.ca.opendata.databases.CustomLoaderCallbacks;
-import a00968178.comp3717.bcit.ca.opendata.databases.DatabaseBuilder;
-import a00968178.comp3717.bcit.ca.opendata.databases.datasets.*;
 
 public class DatasetsActivity extends AppCompatActivity implements AdapterView.OnItemClickListener {
 

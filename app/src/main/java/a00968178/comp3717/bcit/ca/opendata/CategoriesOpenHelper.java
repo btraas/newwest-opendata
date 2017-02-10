@@ -1,7 +1,6 @@
-package a00968178.comp3717.bcit.ca.opendata.databases.categories;
+package a00968178.comp3717.bcit.ca.opendata;
 
 import android.content.Context;
-import android.net.Uri;
 
 import a00968178.comp3717.bcit.ca.opendata.databases.OpenHelper;
 

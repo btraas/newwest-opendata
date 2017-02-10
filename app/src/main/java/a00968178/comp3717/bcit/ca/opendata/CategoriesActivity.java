@@ -12,13 +12,11 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
-import android.widget.Toast;
 
 
 import a00968178.comp3717.bcit.ca.opendata.databases.CustomContentProvider;
 import a00968178.comp3717.bcit.ca.opendata.databases.CustomLoaderCallbacks;
 import a00968178.comp3717.bcit.ca.opendata.databases.DatabaseBuilder;
-import a00968178.comp3717.bcit.ca.opendata.databases.categories.*;
 
 public class CategoriesActivity extends AppCompatActivity implements AdapterView.OnItemClickListener {
 
