@@ -66,7 +66,7 @@ public abstract class OpenHelper
         this.idName = idName;
         this.columnNames = columnNames;
         this.columnTypes = columnTypes;
-        this.contentUri = Uri.parse(URI_BASE + tableName + "?hi=no");
+        this.contentUri = Uri.parse(URI_BASE + tableName);
 
         this.nameColumn = columnNames[0]; // by default
     }
@@ -204,12 +204,19 @@ public abstract class OpenHelper
 
     }
 
+    /**
+     * Get all rows
+     */
     public Cursor getRows(final Context context)
     {
         return this.getRows(context, null, null, null, null, null, null, null );
 
     }
 
+    /**
+     * Get rows with selection
+     *
+     */
     public Cursor getRows(final Context context, String selection) {
 
 
@@ -217,6 +224,10 @@ public abstract class OpenHelper
 
     }
 
+    /**
+     * Get rows with selection & args
+     *
+     */
     public Cursor getRows(final Context context, String selection, String[] selectionArgs) {
 
 
@@ -224,6 +235,10 @@ public abstract class OpenHelper
 
     }
 
+    /**
+     * Get rows with full query parameters
+     *
+     */
     public Cursor getRows(final Context context,
                             String[] cols,
                             String selection,
