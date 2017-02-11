@@ -106,17 +106,17 @@ public final class DatabaseBuilder {
                 int i = 0;
                 insertCategory(++i, "Business and Economy Datasets" ,12);
                 insertCategory(++i, "City Government Datasets", 7);
-                //insertCategory(++i, "Community Datasets", 6);
-                //insertCategory(++i, "Electrical Datasets", 1);
-                /* insertCategory(++i, "Environment Datasets", 1);
+                insertCategory(++i, "Community Datasets", 6);
+                insertCategory(++i, "Electrical Datasets", 1);
+                insertCategory(++i, "Environment Datasets", 1);
                 insertCategory(++i, "Finance Datasets", 3);
                 insertCategory(++i, "Heritage Datasets", 3);
                 insertCategory(++i, "Lands and Development Datasets", 14);
                 insertCategory(++i, "Parks and Recreation Datasets", 11);
                 insertCategory(++i, "Public Safety Datasets", 8);
                 insertCategory(++i, "Transportation Datasets", 17);
-                insertCategory(++i, "Utilities Datasets", 9);
-*/
+                insertCategory(++i, "Utilities Datasets", 10);
+
                 db.setTransactionSuccessful();
             }
             finally
@@ -317,8 +317,6 @@ public final class DatabaseBuilder {
                 insertDataset(++i, 2, "Addresses", "\nA list of addresses for the City of New Westminster.\n\n\n			CSV (3 MB) | KMZ (2 MB) | SHP (895 KB)\n	\n\n", "http://opendata.newwestcity.ca/datasets/address-points");
                 insertDataset(++i, 2, "City Boundaries", "City of New Westminster Boundaries.\n\n", "http://opendata.newwestcity.ca/datasets/city-boundaries");
                 insertDataset(++i, 2, "City Owned Property", "Parcels of property currently owned by the Corporation of the City of New Westminster.\n\n", "http://opendata.newwestcity.ca/datasets/city-owned-property");
-
-                /*
                 insertDataset(++i, 2, "Councillor Contact Information", "\nThe City of New Westminster wants to facilitate residents and the general public access to the elected officials of the City.  \n\n\n			CSV (756 B) | XLSX (11 KB)\n	\n\n", "http://opendata.newwestcity.ca/datasets/councillor-contact-information");
                 insertDataset(++i, 2, "Election Results 1990 - Present", "\nThe spreadsheet provides the candidates, voting locations and the results for the candidate both total and by location for each election from 1990 forward.\n\n\n			XLSX (12 KB) | XLSX (62 KB)\n	\n\n", "http://opendata.newwestcity.ca/datasets/electrion-results-1990-present");
                 insertDataset(++i, 2, "Neighbourhoods Boundaries", "These new boundaries are used for contemporary planning functions and are the basis for most of the statistics used in recent Census data published by the City of New Westminster…\n\n", "http://opendata.newwestcity.ca/datasets/neighbourhoods");
@@ -400,6 +398,9 @@ public final class DatabaseBuilder {
                 insertDataset(++i, 12, "Water Valves", "A device that regulates the flow of water.\n\n", "http://opendata.newwestcity.ca/datasets/water-valves");
                 insertDataset(++i, 12, "Watermains", "A principal pipe in a system of pipes for conveying water, especially one installed underground.\n\n", "http://opendata.newwestcity.ca/datasets/watermains");
 
+
+                // These are recently added... Instead of hard-coding them like the above, I enabled a sync task from CategoriesActivity to update the DB
+                // from opendata.newwestcity.ca
                 /*
                 insertDataset(++i, , "Bus Routes", "", "http://opendata.newwestcity.ca/datasets/bus-routes");
                 insertDataset(++i, , "Bus Stops", "", "http://opendata.newwestcity.ca/datasets/bus-stops");

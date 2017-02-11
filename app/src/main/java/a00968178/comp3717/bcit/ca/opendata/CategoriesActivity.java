@@ -80,30 +80,21 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
         manager.initLoader(0, null,
                 new CustomLoaderCallbacks(CategoriesActivity.this, adapter, openHelper.getContentUri()));
 
-        //setListAdapter(new ArrayAdapter(this, android.R.layout.simple_list_item_1, list));
-
-        //openHelper = CategoriesOpenHelper.getInstance(getApplicationContext());
-
-
-
-        db = openHelper.getWritableDatabase();
-        numEntries = openHelper.getNumberOfRows();
-
-
-
-        //String[] categories = getResources().getStringArray(R.array.categories);
-
-       // Toast.makeText(getApplicationContext(), "Number of entries: " + numEntries, Toast.LENGTH_LONG).show();
 
         if(FIRST_TIME) {
 
             FIRST_TIME = false;
 
-            DatabaseBuilder dbb = new DatabaseBuilder(getApplicationContext());
+            int numCategories = (int) openHelper.getNumberOfRows();
 
-            dbb.cleanup(); // Delete tables
-            dbb.populateCategories();   // insert data if not exists
-            dbb.populateDatasets(); // insert data if not exists
+            if (numCategories == 0) {
+
+                DatabaseBuilder dbb = new DatabaseBuilder(getApplicationContext());
+
+                dbb.cleanup();              // Delete tables
+                dbb.populateCategories();   // insert data if not exists
+                dbb.populateDatasets();     // insert data if not exists
+            }
         }
 
         display();
