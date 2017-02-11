@@ -2,7 +2,9 @@ package a00968178.comp3717.bcit.ca.opendata.databases;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.res.Resources;
 import android.database.Cursor;
+import android.database.CursorIndexOutOfBoundsException;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -190,24 +192,44 @@ public abstract class OpenHelper
         this.onCreate(db);
     }
 
+    public void delete(final int id){
+       this.delete(this.idName + " = ?", new String[] {""+id});
+    }
+
+
+    public int delete(final String where, final String[] args){
+        return getWritableDatabase().delete(this.tableName, where, args);
+    }
+
+    public int getId(final String where, final String[] args) throws Resources.NotFoundException {
+        Cursor c = this.getRows(null, where, args);
+        c.moveToFirst();
+        try {
+            if (c.getInt(0) == 0) throw new Resources.NotFoundException("Row not found!");
+        } catch(CursorIndexOutOfBoundsException e) {
+            throw new Resources.NotFoundException("Row not found!");
+        }
+        return c.getInt(c.getColumnIndex(this.idName));
+    }
+
 
     /**
      * Default getRow... for PK
      */
     public Cursor getRow(final Context context, final int id) {
-        return this.getRow(context, idName, id);
+        return this.getRow(context, idName, ""+id);
     }
 
     /**
      * getRow with a colName and ID
      */
-    public Cursor getRow(final Context context, final String colName, final int id) {
+    public Cursor getRow(final Context context, final String colName, final String value) {
         final Cursor cursor;
         boolean valid = false;
 
-        Log.d(TAG, "getRow(context, "+colName + ", " + id + ")");
+        Log.d(TAG, "getRow(context, "+colName + ", " + value + ")");
 
-        if(colName == this.idName) valid = true;
+        if(colName.equals(this.idName)) valid = true;
         else {
             List validCols = Arrays.asList(this.columnNames);
             if(validCols.contains(colName)) valid = true;
@@ -219,7 +241,7 @@ public abstract class OpenHelper
             return null;
         }
 
-        return getRows(context, colName + " = ?", new String[] {""+id});
+        return getRows(context, colName + " = ?", new String[] {""+value});
 
 
     }
@@ -283,7 +305,7 @@ public abstract class OpenHelper
 
         //context.getContentResolver().
         //cursor.set
-        cursor.setNotificationUri(context.getContentResolver(), this.contentUri);
+        if(context != null) cursor.setNotificationUri(context.getContentResolver(), this.contentUri);
 
         return (cursor);
     }

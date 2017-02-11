@@ -2,6 +2,8 @@ package a00968178.comp3717.bcit.ca.opendata;
 
 
 import android.content.Context;
+import android.content.res.Resources;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
 import android.os.Handler;
@@ -72,7 +74,7 @@ public final class DatabaseBuilder {
         if(desc.trim().equals("")) desc = "No Description Available";
 
         HashMap<String, String> hm = new HashMap<String, String>();
-        hm.put("_id", ""+id);
+        //hm.put("_id", ""+id);
         hm.put("category_id", ""+category_id);
         hm.put("dataset_name", name);
         hm.put("dataset_desc", desc);
@@ -102,18 +104,18 @@ public final class DatabaseBuilder {
             try
             {
                 int i = 0;
-                insertCategory(++i, "Business and Economy" ,12);
-                insertCategory(++i, "City Government", 7);
-                insertCategory(++i, "Community", 6);
-                insertCategory(++i, "Electrical", 1);
-                insertCategory(++i, "Environment", 1);
-                insertCategory(++i, "Finance", 3);
-                insertCategory(++i, "Heritage", 3);
-                insertCategory(++i, "Lands and Development", 14);
-                insertCategory(++i, "Parks and Recreation", 11);
-                insertCategory(++i, "Public Safety", 8);
-                insertCategory(++i, "Transportation", 17);
-                insertCategory(++i, "Utilities", 9);
+                insertCategory(++i, "Business and Economy Datasets" ,12);
+                insertCategory(++i, "City Government Datasets", 7);
+                insertCategory(++i, "Community Datasets", 6);
+                insertCategory(++i, "Electrical Datasets", 1);
+                insertCategory(++i, "Environment Datasets", 1);
+                insertCategory(++i, "Finance Datasets", 3);
+                insertCategory(++i, "Heritage Datasets", 3);
+                insertCategory(++i, "Lands and Development Datasets", 14);
+                insertCategory(++i, "Parks and Recreation Datasets", 11);
+                insertCategory(++i, "Public Safety Datasets", 8);
+                insertCategory(++i, "Transportation Datasets", 17);
+                insertCategory(++i, "Utilities Datasets", 9);
 
                 db.setTransactionSuccessful();
             }
@@ -127,8 +129,18 @@ public final class DatabaseBuilder {
     }
 
 
+    private int getNumberOfDatasets(String category_name) {
+
+        Cursor cursor = categoriesHelper.getRow(null, "category_name", category_name);
+
+        cursor.moveToFirst();
+        int number = cursor.getInt(cursor.getColumnIndex("dataset_count"));
+        cursor.close();
+        return number;
+    }
+
 // So we can end db transactions.
-    public int sync() throws IOException {
+    public int sync() throws IOException, NoChangeException {
 
         int result = -1;
 
@@ -137,7 +149,8 @@ public final class DatabaseBuilder {
 
         try {
 
-            cleanup(); // delete current data
+            //cleanup(); // delete current data
+            //categoriesHelper.rebuildTable(); // delete current data
             result = syncHandler();
             categoriesHelper.getWritableDatabase().setTransactionSuccessful();
             datasetsHelper.getWritableDatabase().setTransactionSuccessful();
@@ -150,7 +163,7 @@ public final class DatabaseBuilder {
         return result;
     }
 
-    private int syncHandler() throws IOException {
+    private int syncHandler() throws IOException, NoChangeException {
         //InputStream categories = httpInputStream(CATEGORIES_URL);
 
         int originalCategoryCount = (int)categoriesHelper.getNumberOfRows();
@@ -175,11 +188,34 @@ public final class DatabaseBuilder {
                 try {
                     Document categoryDoc = Jsoup.connect(link).get();
 
-                    String name = categoryDoc.select(CATEGORY_NAME_SELECT).first().text().replace("Datasets", "").trim();
+                    String name = categoryDoc.select(CATEGORY_NAME_SELECT).first().text().trim();
                     if(name.equals("")) throw new IOException("Category "+categoryCount+" has no name!");
 
+
                     Elements datasets = categoryDoc.select(DATASETS_SELECT);
+
+                    Cursor c = categoriesHelper.getRow(null, "category_name", name);
+                    int rowIndex = c.getColumnIndex("dataset_count");
+                    Log.d(TAG, "row index: "+rowIndex);
+                    //int numDatasets = c.getInt(0);
+                    int numDatasets = 0;
+
+                    Log.d(TAG, "checking category datasets: "+numDatasets+" and on web: "+datasets.size());
+                    if(numDatasets == datasets.size()) continue;
+
+
+
+                    try {
+                        int existCatId  = categoriesHelper.getId("category_name = ?", new String[] {name} );
+                        categoriesHelper.delete(existCatId);
+                        datasetsHelper.delete("category_id = ?", new String[] {""+existCatId}); // delete where category_id = this
+
+                    } catch (Resources.NotFoundException e) {
+                        Log.w(TAG,"Unable to get category ID for "+name);
+                    }
+
                     insertCategory(++categoryCount, name, datasets.size());
+
 
                     for (Element dataset : datasets) {
                         Log.d(TAG, "Dataset "+(datasetCount+1));
@@ -237,6 +273,12 @@ public final class DatabaseBuilder {
         }
 
         Log.d(TAG, "orig dataset: "+originalDatasetCount+" now datasets: "+datasetCount);
+
+
+        datasetCount = (int)datasetsHelper.getNumberOfRows();
+
+        if(datasetCount == originalDatasetCount) throw new NoChangeException("Already up-to-date");
+        if(datasetCount < originalDatasetCount) throw new IOException("Failed to update DB...");
 
         return datasetCount - originalDatasetCount;
     }

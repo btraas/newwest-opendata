@@ -35,10 +35,6 @@ public class CustomAdapter extends SimpleCursorAdapter {
             name_text.setText(name + " ("+count+")");
         }
 
-        TextView count_text = (TextView) v.findViewById(R.id.category_count);
-        if (count_text != null) {
-      //      count_text.setText(count);
-        }
 
         return v;
     }

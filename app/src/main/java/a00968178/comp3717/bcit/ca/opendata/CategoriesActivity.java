@@ -161,34 +161,47 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
         Log.d(TAG, "onItemClick end for id: "+id);
     }
 
-    private class SyncJob extends AsyncTask<String, Void, String> {
+    private class SyncJob extends AsyncTask<String, Void, Bundle> {
 
         @Override
-        protected String doInBackground(String[] params) {
+        protected Bundle doInBackground(String[] params) {
             // do above Server call here
 
-            int result = 0;
+            Bundle b = new Bundle();
+            b.putInt("result", 0);
+
+            int result, updated = 0;
             int datasets = (int)(new DatasetsOpenHelper(getApplicationContext())).getNumberOfRows();
 
             try {
                 result = (new DatabaseBuilder(getApplicationContext())).sync();
+                updated = result - datasets;
+
+                if(updated == 0) b.putString("msg", "Already up-to-date");
+                else b.putString("msg", "Success: Updated "+updated+" datasets");
+            } catch(NoChangeException e) {
+                b.putString("msg", e.getMessage());
             } catch (IOException e) {
-                return "Error: " + e.getMessage();
+               b.putString("msg", "Error: " + e.getMessage());
             }
 
-            int updated = result - datasets;
 
-            if(updated == 0) return "Already up-to-date";
-            else return "Success: Updated "+updated+" datasets";
+
+            b.putInt("updated", updated);
+            return b;
         }
 
         @Override
-        protected void onPostExecute(String message) {
+        protected void onPostExecute(Bundle b) {
+            String message = b.getString("msg");
             Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
             findViewById(R.id.sync_button).clearAnimation();
 
-            finish();
-            startActivity(getIntent()); // show changes
+            if(b.getInt("updated") > 0)
+            {
+                finish();
+                startActivity(getIntent()); // show changes
+            }
 
         }
     }
