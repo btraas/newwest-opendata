@@ -133,11 +133,12 @@ public abstract class OpenHelper
     @Override
     public SQLiteDatabase getReadableDatabase() {
 
-        return getWritableDatabase();
-        /*
+        //return getWritableDatabase();
+
         if(readDatabase == null) readDatabase = super.getReadableDatabase();
         return readDatabase;
-        */
+
+
     }
 
     public long getNumberOfRows()

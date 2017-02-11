@@ -197,6 +197,8 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
             Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
             findViewById(R.id.sync_button).clearAnimation();
 
+            Log.d(TAG, "updated = "+b.getInt("updated"));
+
             if(b.getInt("updated") > 0)
             {
                 finish();
