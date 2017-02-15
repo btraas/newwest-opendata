@@ -4,7 +4,6 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/OpenData.iml" filepath="$PROJECT_DIR$/OpenData.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/newwest-opendata.iml" filepath="$PROJECT_DIR$/newwest-opendata.iml" />
     </modules>
   </component>
 </project>

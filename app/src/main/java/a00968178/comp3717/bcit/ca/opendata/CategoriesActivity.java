@@ -63,7 +63,7 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
 
         adapter = new CustomAdapter(getBaseContext(),
                 R.layout.category_row,
-                null,
+                openHelper.getRows(getApplicationContext()),
                 new String[]
                         {
                                 CategoriesOpenHelper.NAME_COLUMN,
@@ -76,54 +76,32 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
 
         listView.setAdapter(adapter);
 
+        /*
         manager = getLoaderManager();
         manager.initLoader(0, null,
                 new CustomLoaderCallbacks(CategoriesActivity.this, adapter, openHelper.getContentUri()));
-
+        */
 
         if(FIRST_TIME) {
 
             FIRST_TIME = false;
 
+
+
             int numCategories = (int) openHelper.getNumberOfRows();
 
             if (numCategories == 0) {
 
-                DatabaseBuilder dbb = new DatabaseBuilder(getApplicationContext());
+                Toast.makeText(getApplicationContext(), "Populating Database from strings...", Toast.LENGTH_SHORT).show();
 
-                dbb.cleanup();              // Delete tables
-                dbb.populateCategories();   // insert data if not exists
-                dbb.populateDatasets();     // insert data if not exists
+                SyncJob job = new SyncJob();
+                job.execute(new String[] {"local"}); // download from local
+
             }
         }
 
-        display();
-
     }
 
-    private void display()
-    {
-        final SQLiteDatabase db;
-        Cursor cursor;
-
-        db     = openHelper.getReadableDatabase();
-        //cursor = openHelper.dumpTable(getApplicationContext());
-
-
-        cursor = openHelper.getRows(getApplicationContext());
-        while(cursor.moveToNext())
-        {
-            final String name;
-            //name = cursor.get
-            name = cursor.getString(0);
-            String id   = cursor.getString(1);
-
-
-            Log.d(TAG, id + "-" + name);
-        }
-
-        cursor.close();
-    }
 
     @Override
     public void onItemClick(AdapterView<?> adapter, final View view, int position, long id)
@@ -156,17 +134,39 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
 
         @Override
         protected Bundle doInBackground(String[] params) {
-            // do above Server call here
+
+            if(params.length > 0 && params[0].equals("local")) {
+
+                // Populate locally
+
+                DatabaseBuilder dbb = new DatabaseBuilder(getApplicationContext());
+
+                dbb.cleanup();              // Delete tables
+                dbb.populateCategories();   // insert data if not exists
+                int datasets = dbb.populateDatasets();     // insert data if not exists
+
+                Bundle b = new Bundle();
+                b.putInt("result", 0);
+                b.putInt("updated", datasets);
+                b.putString("msg", "Success: Inserted "+datasets+" datasets");
+
+                return b;
+
+            }
+
 
             Bundle b = new Bundle();
             b.putInt("result", 0);
 
+
+            DatasetsOpenHelper helper = new DatasetsOpenHelper(getApplicationContext());
+
             int result, updated = 0;
-            int datasets = (int)(new DatasetsOpenHelper(getApplicationContext())).getNumberOfRows();
+            int datasets = (int)helper.getNumberOfRows();
 
             try {
-                result = (new DatabaseBuilder(getApplicationContext())).sync();
-                updated = result - datasets;
+                (new DatabaseBuilder(getApplicationContext())).sync();
+                updated = (int)helper.getNumberOfRows() - datasets;
 
                 if(updated == 0) b.putString("msg", "Already up-to-date");
                 else b.putString("msg", "Success: Updated "+updated+" datasets");

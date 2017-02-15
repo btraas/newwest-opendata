@@ -4,6 +4,7 @@ package a00968178.comp3717.bcit.ca.opendata;
 import android.content.Context;
 import android.content.res.Resources;
 import android.database.Cursor;
+import android.database.CursorIndexOutOfBoundsException;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
 import android.os.Handler;
@@ -195,13 +196,25 @@ public final class DatabaseBuilder {
                     Elements datasets = categoryDoc.select(DATASETS_SELECT);
 
                     Cursor c = categoriesHelper.getRow(null, "category_name", name);
-                    int rowIndex = c.getColumnIndex("dataset_count");
-                    Log.d(TAG, "row index: "+rowIndex);
-                    //int numDatasets = c.getInt(0);
-                    int numDatasets = 0;
+                    //c.moveToFirst();
+                    int datasetsIndex = c.getColumnIndex("dataset_count");
+                    Log.d(TAG, "datasets index: "+datasetsIndex);
 
-                    Log.d(TAG, "checking category datasets: "+numDatasets+" and on web: "+datasets.size());
-                    if(numDatasets == datasets.size()) continue;
+                    int numDatasets;
+                    Log.d(TAG, "category " + name + " columns: " + c.getColumnCount());
+                    try {
+                        numDatasets = c.getInt(datasetsIndex);
+                    } catch (CursorIndexOutOfBoundsException e) {
+                        Log.e(TAG, "c.getInt("+datasetsIndex+") exception: "+e.getMessage());
+                        numDatasets = 0;
+                    }
+                        //int numDatasets = 0;
+
+                    Log.d(TAG, "checking category '"+name+"' datasets: "+numDatasets+" and on web: "+datasets.size());
+                    if(numDatasets == datasets.size()) {
+                        Log.d(TAG, "No change for category "+name);
+                        continue;
+                    }
 
 
 
@@ -209,13 +222,11 @@ public final class DatabaseBuilder {
                         int existCatId  = categoriesHelper.getId("category_name = ?", new String[] {name} );
                         categoriesHelper.delete(existCatId);
                         datasetsHelper.delete("category_id = ?", new String[] {""+existCatId}); // delete where category_id = this
+                        insertCategory(++categoryCount, name, datasets.size());
 
                     } catch (Resources.NotFoundException e) {
                         Log.w(TAG,"Unable to get category ID for "+name);
                     }
-
-                    insertCategory(++categoryCount, name, datasets.size());
-
 
                     for (Element dataset : datasets) {
                         Log.d(TAG, "Dataset "+(datasetCount+1));
@@ -285,9 +296,11 @@ public final class DatabaseBuilder {
 
 
 
-    public void populateDatasets() {
+    public int populateDatasets() {
         final SQLiteDatabase db;
         final long           numEntries;
+
+        int i = 0;
 
         OpenHelper helper = datasetsHelper;
 
@@ -300,7 +313,7 @@ public final class DatabaseBuilder {
 
             try
             {
-                int i = 0;
+                i = 0;
                 //insertDataset(++i, 0, "get = function(elem) { xml += "" + elem.text() + "\n" }", "", "");
                 insertDataset(++i, 1, "Business Licenses (Active - Resident)", "\nNew Westminster has an annual renewal of approximately 4,000 business licenses each year. Business Licensing also issues licenses for liquor establishments and municipal decals.\nThings to know\n1) Before you sign a lease, it’s important for prospective business owners who are applying for business licenses to check with the Building, Planning and Licensing divisions on property they wish to lease or buy in regards to outstanding orders or issues pertaining to that property.\n2) Before you sign a lease, check with the Planning and Building Department to make sure your business is a permitted use on the site.\n3) Before you purchase a sign for your business, review the requirements of the sign bylaw with the Planning Division. Click here for Sign Permit information.\n4) Each space in a building has its own specific approved use and sometimes the use of that space cannot be changed without approval and/or permit.\nhttps://www.newwestcity.ca/business_licences.php\n\n\n			CSV (574 KB) | XLSX (4 MB)\n	\n\n", "http://opendata.newwestcity.ca/datasets/business-license-active-resident");
                 insertDataset(++i, 1, "Business Licenses (Inter-Municipal)", "\nAs of October 1, 2013, an Inter-municipal Business License will be available in the Metro West region. For $250, eligible businesses may be licensed to work in all of the following municipalities: \nCity of New Westminster\nCity of Burnaby\nCorporation of Delta\nCity of Richmond\nCity of Surrey\nCity of Vancouver\nEligibility is limited to inter-municipal businesses, defined as trades contractors or other professionals (related to the construction industry) that provide a service or product other than from their fixed and permanent location. Only eligible businesses which have fixed and permanent location in one of the participating municipalities are eligible for the IMBL.\nFor further information, please contact the City of New Westminster Business Licensing Office at 604-527-4565.\nhttps://www.newwestcity.ca/business_licences.php\n\n\n			CSV (25 KB) | XLSX (13 KB)\n	\n\n", "");
@@ -427,6 +440,8 @@ public final class DatabaseBuilder {
         }
 
         db.close();
+
+        return i;
     }
 
 

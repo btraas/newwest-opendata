@@ -8,6 +8,14 @@
     android:orientation="vertical"
     >
 
+    <ListView
+        android:id="@+id/categories_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentTop="true">
+    </ListView>
+
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/sync_button"
         android:layout_width="wrap_content"
@@ -18,13 +26,5 @@
         app:elevation="7dp"
         android:minHeight="250dp"
         android:onClick="sync" />
-
-    <ListView
-        android:id="@+id/categories_list"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentTop="true">
-    </ListView>
 
 </android.support.design.widget.CoordinatorLayout>
