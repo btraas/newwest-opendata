@@ -209,9 +209,8 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
 
         //count = DatabaseBuilder.sync();
 
-        SyncJob job = new SyncJob();
+        (new SyncJob()).execute();
 
-        job.execute();
     }
 
 }
