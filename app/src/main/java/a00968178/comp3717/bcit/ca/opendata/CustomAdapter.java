@@ -2,7 +2,6 @@ package a00968178.comp3717.bcit.ca.opendata;
 
 import android.content.Context;
 import android.database.Cursor;
-import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;

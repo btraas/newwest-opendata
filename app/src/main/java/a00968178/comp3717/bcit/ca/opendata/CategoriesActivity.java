@@ -2,7 +2,6 @@ package a00968178.comp3717.bcit.ca.opendata;
 
 import android.app.LoaderManager;
 import android.content.Intent;
-import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -22,7 +21,6 @@ import android.widget.Toast;
 import java.io.IOException;
 
 import a00968178.comp3717.bcit.ca.opendata.databases.CustomContentProvider;
-import a00968178.comp3717.bcit.ca.opendata.databases.CustomLoaderCallbacks;
 
 public class CategoriesActivity extends AppCompatActivity implements AdapterView.OnItemClickListener {
 
