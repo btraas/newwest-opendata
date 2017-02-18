@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="a00968178.comp3717.bcit.ca.opendata">
+    package="ca.bcit.comp3717.a00968178.OpenData">
 
     <uses-permission android:name="android.permission.INTERNET"/>
 
@@ -11,8 +11,8 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <provider
-            android:name="a00968178.comp3717.bcit.ca.opendata.databases.CustomContentProvider"
-            android:authorities="a00968178.comp3717.bcit.ca.opendata"
+            android:name="ca.bcit.comp3717.a00968178.OpenData.databases.CustomContentProvider"
+            android:authorities="ca.bcit.comp3717.a00968178.OpenData"
             android:enabled="true"
             android:exported="false">
         </provider>

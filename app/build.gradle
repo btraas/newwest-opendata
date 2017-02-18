@@ -4,7 +4,7 @@ android {
     compileSdkVersion 25
     buildToolsVersion "25.0.2"
     defaultConfig {
-        applicationId "a00968178.comp3717.bcit.ca.opendata"
+        applicationId "ca.bcit.comp3717.a00968178.OpenData"
         minSdkVersion 17
         targetSdkVersion 25
         versionCode 1
