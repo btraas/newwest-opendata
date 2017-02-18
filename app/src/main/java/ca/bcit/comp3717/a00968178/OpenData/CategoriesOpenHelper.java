@@ -5,7 +5,8 @@ import android.content.Context;
 import ca.bcit.comp3717.a00968178.OpenData.databases.OpenHelper;
 
 /**
- * Created by darcy on 2016-10-16.
+ * Extends a modified version of D'Arcy's OpenHelper
+ * Simply defines the table, not the methods.
  */
 
 public final class CategoriesOpenHelper
@@ -18,9 +19,12 @@ public final class CategoriesOpenHelper
     private static final String TABLE_NAME = "categories";
     private static final String ID_COLUMN_NAME = "_id";
     private static final String[] COLUMNS = {"category_name", "dataset_count"};
+    private static final String ORDER = NAME_COLUMN;
 
     public CategoriesOpenHelper(final Context ctx)
     {
-        super(ctx, DB_NAME, TABLE_NAME, ID_COLUMN_NAME, COLUMNS, new String[] {"TEXT NOT NULL", "INTEGER NOT NULL DEFAULT 0"});
+        super(ctx, DB_NAME, TABLE_NAME, ID_COLUMN_NAME, COLUMNS,
+                new String[] {"TEXT NOT NULL", "INTEGER NOT NULL DEFAULT 0"},
+                ORDER);
     }
 }

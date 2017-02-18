@@ -8,10 +8,12 @@ import android.view.ViewGroup;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 
-public class CustomAdapter extends SimpleCursorAdapter {
 
-    private int mSelectedPosition;
-    Cursor items;
+/**
+ * A simple Adapter for showing the number of datasets in a category
+ */
+public class CategoryAdapter extends SimpleCursorAdapter {
+
     private Context context;
     private int layout;
 
@@ -39,7 +41,7 @@ public class CustomAdapter extends SimpleCursorAdapter {
     }
 
 
-    public CustomAdapter(Context context, int layout, Cursor c, String[] from, int[] to) {
+    public CategoryAdapter(Context context, int layout, Cursor c, String[] from, int[] to) {
         super(context, layout, c, from, to);
         this.context = context;
         this.layout = layout;
@@ -61,22 +63,7 @@ public class CustomAdapter extends SimpleCursorAdapter {
             name_text.setText(name + " (" + count + ")");
         }
 
-        //name_text.setTextColor(Color.GREEN);
-/*
-        int position = c.getPosition();
-        if (mSelectedPosition == position) {
-            //v.setBackgroundResource(R.drawable.listviewbackground);
-            v.getBackground().setDither(true);
-        } else {
-            v.setBackgroundColor(Color.BLACK);
-        }
-*/
     }
 
 
-    public void setSelectedPosition(int position) {
-        mSelectedPosition = position;
-        notifyDataSetChanged();
-
-    }
 }

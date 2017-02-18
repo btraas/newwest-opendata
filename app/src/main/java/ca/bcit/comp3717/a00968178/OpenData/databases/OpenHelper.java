@@ -13,9 +13,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Created by darcy on 2016-10-16.
@@ -40,6 +38,7 @@ public abstract class OpenHelper
 	protected final String idName;
 	protected final String[] columnNames;
     protected final String[] columnTypes;
+    protected final String defaultOrder;
 	protected final Uri contentUri;
 
     protected String nameColumn;
@@ -51,7 +50,8 @@ public abstract class OpenHelper
 
     protected OpenHelper(final Context ctx, final String dbName,
                          String tableName, String idName,
-                         String[] columnNames, String[] columnTypes)
+                         String[] columnNames, String[] columnTypes,
+                         String defaultOrder)
     {
         super(ctx, dbName, null, SCHEMA_VERSION);
 
@@ -68,6 +68,7 @@ public abstract class OpenHelper
         this.idName = idName;
         this.columnNames = columnNames;
         this.columnTypes = columnTypes;
+        this.defaultOrder = defaultOrder;
         this.contentUri = Uri.parse(URI_BASE + tableName);
 
         this.nameColumn = columnNames[0]; // by default
@@ -162,18 +163,61 @@ public abstract class OpenHelper
         return (numEntries);
     }
 
-    public void insert(final SQLiteDatabase db,
-                       final HashMap<String, String> data
-                       )
-    {
-        final ContentValues contentValues;
-
-        contentValues = new ContentValues();
-        for(Map.Entry<String, String> entry : data.entrySet()) {
-            contentValues.put(entry.getKey(), entry.getValue());
-        }
-        db.insert(this.tableName, null, contentValues);
+    public void insert(final ContentValues data) {
+        getWritableDatabase().insert(this.tableName, null, data);
     }
+    public void insert(int id, ContentValues data)
+    {
+        if(id > 0) data.put("_id", ""+id);
+        insert(data);
+    }
+
+    public boolean insertIfNotExists(int id, final ContentValues data)
+    {
+        int rows = (int)getNumberOfRows("_id = ?", new String[] {""+id});
+        if(rows < 1) insert(id, data);
+
+        return (rows < 1); // return true if inserted
+    }
+
+    public boolean insertIfNotExists(String where, String[] whereArgs,
+                                     final ContentValues data)
+    {
+        int rows = (int)getNumberOfRows(where, whereArgs);
+        if(rows < 1) insert(data);
+
+        return (rows < 1); // return true if inserted
+    }
+
+
+    public void update(String selection, String[] selectionArgs, final ContentValues data) {
+        SQLiteDatabase db = getWritableDatabase();
+
+        db.update(this.tableName, data, selection, selectionArgs);
+    }
+
+    public void update(int id, final ContentValues data) {
+
+        update("_id = ?", new String[] {""+id}, data);
+    }
+
+
+
+    public void upsert(String selection, String[] selectionArgs, final ContentValues data)
+    {
+        int rows = (int)getNumberOfRows(selection, selectionArgs);
+        if(rows < 1) insert(data);
+        else         update(selection, selectionArgs, data);
+    }
+
+    public void upsert(int id, final ContentValues data)
+    {
+        int rows = (int)getNumberOfRows("_id = ?", new String[] {""+id});
+        if(rows < 1) insert(id, data);
+        else         update(id, data);
+    }
+
+
 
 
 
@@ -251,7 +295,7 @@ public abstract class OpenHelper
      */
     public Cursor getRows(final Context context)
     {
-        return this.getRows(context, null, null, null, null, null, null, null );
+        return this.getRows(context, null, null );
 
     }
 
@@ -262,7 +306,7 @@ public abstract class OpenHelper
     public Cursor getRows(final Context context, String selection) {
 
 
-        return this.getRows(context, null, selection, null, null, null, null, null );
+        return this.getRows(context, selection, null );
 
     }
 
@@ -273,7 +317,7 @@ public abstract class OpenHelper
     public Cursor getRows(final Context context, String selection, String[] selectionArgs) {
 
 
-        return this.getRows(context, null, selection, selectionArgs, null, null, null, null );
+        return this.getRows(context, null, selection, selectionArgs, null, null, defaultOrder, null );
 
     }
 
@@ -292,7 +336,20 @@ public abstract class OpenHelper
     {
         final Cursor cursor;
 
-        Log.d(TAG, "getRows() selection: "+selection);
+        if(order == null) order = defaultOrder;
+
+        Log.d(TAG, "getRows() selection: "+selection+" ordeR: "+defaultOrder);
+
+        Log.d(TAG,  "Running Q: SELECT "+Arrays.toString(cols) +
+                    " FROM "+tableName+
+                    (selection == null ? "" : " WHERE "+selection) +
+                    (group == null ? "" : " GROUP BY " + group) +
+                    (having == null ? "" : " HAVING  " + having) +
+                    (order == null ? "" : " ORDER BY " + order) +
+                    (limit == null ? "" : " LIMIT " + limit) +
+                    (args == null ? "" : "\n("+Arrays.toString(args)+")")
+        );
+
 
         cursor = getReadableDatabase().query(this.tableName,
                           cols,

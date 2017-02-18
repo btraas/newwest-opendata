@@ -7,7 +7,8 @@ import android.util.Log;
 import ca.bcit.comp3717.a00968178.OpenData.databases.OpenHelper;
 
 /**
- * Created by darcy on 2016-10-16.
+ * Extends a modified version of D'Arcy's OpenHelper
+ * Simply defines the table, not the methods.
  */
 
 
@@ -15,7 +16,7 @@ import ca.bcit.comp3717.a00968178.OpenData.databases.OpenHelper;
 public final class DatasetsOpenHelper
     extends OpenHelper {
 
-    private static final String DEFAULT_DESC = "No Description Available";
+    public static final String DEFAULT_DESC = "No Description Available";
     public static final String NAME_COLUMN = "dataset_name";
 
     private static final String TAG = DatasetsOpenHelper.class.getName();
@@ -25,10 +26,11 @@ public final class DatasetsOpenHelper
     private static final String[] DATA_COLUMN_NAMES = {"category_id", "dataset_name", "dataset_desc", "dataset_link"};
     private static final String[] DATA_COLUMN_TYPES =
             {"INT NOT NULL", "TEXT NOT NULL", "TEXT NOT NULL DEFAULT '"+DEFAULT_DESC+"'", "TEXT NOT NULL"};
+    private static final String ORDER = NAME_COLUMN;
 
 
     public DatasetsOpenHelper(final Context ctx) {
-        super(ctx, DB_NAME, TABLE_NAME, ID_COLUMN_NAME, DATA_COLUMN_NAMES, DATA_COLUMN_TYPES);
+        super(ctx, DB_NAME, TABLE_NAME, ID_COLUMN_NAME, DATA_COLUMN_NAMES, DATA_COLUMN_TYPES, ORDER);
 
         this.nameColumn = "dataset_name"; // override default first... this is what's displayed.
 

@@ -12,7 +12,6 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
 import android.widget.ListView;
-import android.widget.RelativeLayout;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -29,7 +28,8 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
     private static boolean FIRST_TIME = true;
 
     private ListView listView;
-    private CategoriesOpenHelper     catOpenHelper;
+    private CategoriesOpenHelper     categoriesOpenHelper;
+    private DatasetsOpenHelper       datasetsOpenHelper;
     private CustomContentProvider provider;
     private SimpleCursorAdapter adapter;
 
@@ -41,10 +41,12 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_categories);
 
-
-
         listView = (ListView)findViewById(R.id.categories_list);
         listView.setOnItemClickListener(this);
+
+        // Set instance vars (element references)
+
+
 
         init();
 
@@ -57,9 +59,10 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
         final long           numEntries;
         final LoaderManager manager;
 
-        catOpenHelper = new CategoriesOpenHelper(getApplicationContext());
+        categoriesOpenHelper = new CategoriesOpenHelper(getApplicationContext());
+        datasetsOpenHelper   = new DatasetsOpenHelper(getApplicationContext());
 
-        adapter = new CustomAdapter(getBaseContext(),
+        adapter = new CategoryAdapter(getBaseContext(),
                 R.layout.category_row,
                 null, //catOpenHelper.getRows(getApplicationContext()), // dont do this
                 new String[]
@@ -77,7 +80,7 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
 
         manager = getLoaderManager();
         manager.initLoader(0, null,
-                new CustomLoaderCallbacks(CategoriesActivity.this, adapter, catOpenHelper.getContentUri()));
+                new CustomLoaderCallbacks(CategoriesActivity.this, adapter, categoriesOpenHelper.getContentUri()));
 
 
         if(FIRST_TIME) {
@@ -86,14 +89,14 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
 
 
 
-            int numCategories = (int) catOpenHelper.getNumberOfRows();
+            int numCategories = (int) categoriesOpenHelper.getNumberOfRows();
 
             if (numCategories == 0) {
 
                 Toast.makeText(getApplicationContext(), "Populating Database from strings...", Toast.LENGTH_SHORT).show();
 
                 SyncJob job = new SyncJob();
-                job.execute(new String[] {"local"}); // download from local
+                job.execute(new String[] {"local"}); // Insert data from local (hard-coded strings) as per A1
 
             }
         }
@@ -106,28 +109,27 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
     {
         Log.d(TAG, "onItemClick begin");
 
-        String text = ((TextView)(((RelativeLayout)view).findViewById(R.id.category_name))).getText().toString();
-        //String text = ((TextView)view).getText().toString();
-        //((TextView)view).get
+        // Must be called here because it's relative to *this* view (category row)
+        TextView nameText = (TextView)(view.findViewById(R.id.category_name));
 
+        // text -> Used for the title of the next view
+        String text = nameText.getText().toString();
+
+        // categoryId -> Used for the datasets selection query in the next view.
+        int categoryId = (int)id;
 
         final Intent intent;
         intent = new Intent(this, DatasetsActivity.class);
 
-        int categoryId = (int)id;
-
-       // Toast.makeText(getApplicationContext(), "category id: "+categoryId, Toast.LENGTH_LONG).show();
-
-        //Bundle b = new Bundle();
         intent.putExtra("id", categoryId);
         intent.putExtra("name", text);
-        //intent.putExtras(b);
 
         startActivity(intent);
 
         Log.d(TAG, "onItemClick end for id: "+id);
     }
 
+    // Performs a sync of data, either from local or online (opendata.newwestcity.ca)
     private class SyncJob extends AsyncTask<String, Void, Bundle> {
 
         @Override
@@ -157,23 +159,24 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
             b.putInt("result", 0);
 
 
-            DatasetsOpenHelper helper = new DatasetsOpenHelper(getApplicationContext());
-
             int result, updated = 0;
-            int datasets = (int)helper.getNumberOfRows();
+            int datasets = (int)datasetsOpenHelper.getNumberOfRows();
 
             try {
                 (new DatabaseBuilder(getApplicationContext())).sync();
-                updated = (int)helper.getNumberOfRows() - datasets;
+
+                // Get difference (now - before)
+                updated = (int)datasetsOpenHelper.getNumberOfRows() - datasets;
 
                 if(updated == 0) b.putString("msg", "Already up-to-date");
                 else b.putString("msg", "Success: Updated "+updated+" datasets");
+
             } catch(NoChangeException e) {
                 b.putString("msg", e.getMessage());
+
             } catch (IOException e) {
                b.putString("msg", "Error: " + e.getMessage());
             }
-
 
 
             b.putInt("updated", updated);
@@ -183,11 +186,17 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
         @Override
         protected void onPostExecute(Bundle b) {
             String message = b.getString("msg");
+
+            // Toast the returned message
             Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
+
+            // Stop sync animation if it's running.
             findViewById(R.id.sync_button).clearAnimation();
 
+            // Log the results
             Log.d(TAG, "updated = "+b.getInt("updated"));
 
+            // If datasets were added, reload this activity
             if(b.getInt("updated") > 0)
             {
                 finish();
@@ -197,16 +206,21 @@ public class CategoriesActivity extends AppCompatActivity implements AdapterView
         }
     }
 
+    // Sync button onClick
     public void sync(View v) {
-        int count = 0;
 
-        Toast.makeText(getApplicationContext(), "Downloading datasets...", Toast.LENGTH_SHORT).show();
+        String message = DatabaseBuilder.isSynced()
+                ? "Refreshing datasets..."
+                : "Loading from "+DatabaseBuilder.OPENDATA_DOMAIN+"...";
+        Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
 
+        // Spinning sync animation
         Animation sync = AnimationUtils.loadAnimation(this, R.anim.sync);
         v.startAnimation(sync);
 
         //count = DatabaseBuilder.sync();
 
+        // AsyncTask for downloading datasets.
         (new SyncJob()).execute();
 
     }

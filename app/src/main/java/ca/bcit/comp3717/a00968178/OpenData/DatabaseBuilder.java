@@ -1,6 +1,7 @@
 package ca.bcit.comp3717.a00968178.OpenData;
 
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.res.Resources;
 import android.database.Cursor;
@@ -24,6 +25,10 @@ import ca.bcit.comp3717.a00968178.OpenData.databases.OpenHelper;
 
 /**
  * Created by Brayden on 2/6/2017.
+ *
+ * Simple tools for syncing & populating the database.
+ *
+ * Shouldn't be used on the UI thread.
  */
 
 public final class DatabaseBuilder {
@@ -31,7 +36,7 @@ public final class DatabaseBuilder {
 
     private static final String TAG = DatabaseBuilder.class.getName();
 
-    private static final String OPENDATA_DOMAIN = "opendata.newwestcity.ca";
+    public static final String OPENDATA_DOMAIN = "opendata.newwestcity.ca";
     private static final String CATEGORIES_URL = "http://"+OPENDATA_DOMAIN+"/categories";
     private static final String CATEGORIES_SELECT = "body .container-fluid > .nav li > a";
 
@@ -42,7 +47,7 @@ public final class DatabaseBuilder {
     private static final int MAX_ERROR_TOAST = 3; // max error pages to show on Toast.
 
 
-
+    private static boolean synced = false;
 
     private OpenHelper categoriesHelper;
     private OpenHelper datasetsHelper;
@@ -60,24 +65,24 @@ public final class DatabaseBuilder {
 
 
     private void insertCategory(int id, String name, int count) {
-        HashMap<String, String> hm = new HashMap<String, String>();
+        ContentValues hm = new ContentValues();
         hm.put("_id", ""+id);
         hm.put("category_name", name);
         hm.put("dataset_count", ""+count);
-        categoriesHelper.insert(catDB, hm);
+        categoriesHelper.insert(hm);
     }
 
     private void insertDataset(int id, int category_id, String name, String desc, String link) {
 
-        if(desc.trim().equals("")) desc = "No Description Available";
+        if(desc.trim().equals("")) desc = DatasetsOpenHelper.DEFAULT_DESC;
 
-        HashMap<String, String> hm = new HashMap<String, String>();
+        ContentValues hm = new ContentValues();
         //hm.put("_id", ""+id);
         hm.put("category_id", ""+category_id);
         hm.put("dataset_name", name);
         hm.put("dataset_desc", desc);
         hm.put("dataset_link", link);
-        datasetsHelper.insert(dsDB, hm);
+        datasetsHelper.insert(hm);
     }
 
     public void cleanup() {
@@ -89,6 +94,8 @@ public final class DatabaseBuilder {
     public void populateCategories() {
         final SQLiteDatabase db;
         final long           numEntries;
+
+        setSynced(false);
 
         OpenHelper helper = categoriesHelper;
 
@@ -137,33 +144,60 @@ public final class DatabaseBuilder {
         return number;
     }
 
-// So we can end db transactions.
+
+    /**
+     * Syncs data from opendata.newwestcity.ca
+     *  MUST NOT be called from the UI thread
+     *  (or Android will throw an Exception)
+     *
+     * @return
+     * @throws IOException for data not found at URL
+     * @throws NoChangeException for no new datasets. Not an error, but the sync didn't update anything.
+     */
     public int sync() throws IOException, NoChangeException {
 
         int result = -1;
+
+        // Allow queries in another thread to run.
+        //  This sync can take a while, and doesn't block the UI,
+        //  so this prevents crashes when another page is loaded & queries the DB.
 
         categoriesHelper.getWritableDatabase().beginTransactionNonExclusive();
         datasetsHelper.getWritableDatabase().beginTransactionNonExclusive();
 
         try {
 
-            //cleanup(); // delete current data
-            //categoriesHelper.rebuildTable(); // delete current data
+            // The following lines clear the current DB before populating again.
+
+            if(!isSynced()) { // if not yet synced from opendata.newwestcity.ca
+
+                cleanup(); // delete current data
+                categoriesHelper.rebuildTable(); // rebuild the table
+            }
+
+            // Sync
             result = syncHandler();
+
+            // Set successful if no exception thrown
+            setSynced(true);
             categoriesHelper.getWritableDatabase().setTransactionSuccessful();
             datasetsHelper.getWritableDatabase().setTransactionSuccessful();
         } catch (IOException e) {
             throw new IOException(e);
         } finally {
+
+            // End transactions
             categoriesHelper.getWritableDatabase().endTransaction();
             datasetsHelper.getWritableDatabase().endTransaction();
         }
         return result;
     }
 
+    // Perform the actual sync. Throw an exception on error
     private int syncHandler() throws IOException, NoChangeException {
         //InputStream categories = httpInputStream(CATEGORIES_URL);
 
+        // Save current counts
         int originalCategoryCount = (int)categoriesHelper.getNumberOfRows();
         int originalDatasetCount   = (int)datasetsHelper.getNumberOfRows();
 
@@ -177,27 +211,35 @@ public final class DatabaseBuilder {
         ArrayList<String> failedDatasets = new ArrayList<String>();
 
         try {
+
+            // Download HTML from URL & query for categories
             Elements categories = Jsoup.connect(CATEGORIES_URL).get().select(CATEGORIES_SELECT);
             for (Element category : categories) {
                 Log.d(TAG, "Category "+(categoryCount+1));
 
+                // Get this category's HTML link (a tag's HREF)
                 String link = category.attr("href");
 
                 try {
+
+                    // Jsoup to download HTML from the category's link URL
                     Document categoryDoc = Jsoup.connect(link).get();
 
+                    // Get category name
                     String name = categoryDoc.select(CATEGORY_NAME_SELECT).first().text().trim();
                     if(name.equals("")) throw new IOException("Category "+categoryCount+" has no name!");
+                    int categoryId = Integer.parseInt(
+                            link.replace(CATEGORIES_URL + "/", ""));
 
-
+                    // Query category for datasets
                     Elements datasets = categoryDoc.select(DATASETS_SELECT);
 
+                    // Get the current data for this catetory
                     Cursor c = categoriesHelper.getRow(null, "category_name", name);
-                    //c.moveToFirst();
-                    int datasetsIndex = c.getColumnIndex("dataset_count");
-                    Log.d(TAG, "datasets index: "+datasetsIndex);
 
+                    int datasetsIndex = c.getColumnIndex("dataset_count");
                     int numDatasets;
+
                     Log.d(TAG, "category " + name + " columns: " + c.getColumnCount());
                     try {
                         numDatasets = c.getInt(datasetsIndex);
@@ -216,10 +258,17 @@ public final class DatabaseBuilder {
 
 
                     try {
-                        int existCatId  = categoriesHelper.getId("category_name = ?", new String[] {name} );
-                        categoriesHelper.delete(existCatId);
-                        datasetsHelper.delete("category_id = ?", new String[] {""+existCatId}); // delete where category_id = this
-                        insertCategory(++categoryCount, name, datasets.size());
+
+
+                        //int existCatId  = categoriesHelper.getId("category_name = ?", new String[] {name} );
+                        //categoriesHelper.delete(existCatId);
+                        //datasetsHelper.delete("category_id = ?", new String[] {""+existCatId}); // delete where category_id = this
+                        //insertCategory(++categoryCount, name, datasets.size());
+
+                        ContentValues data = new ContentValues();
+                        data.put("category_name", name);
+                        data.put("dataset_count", ""+datasets.size());
+                        categoriesHelper.upsert(categoryId, data);
 
                     } catch (Resources.NotFoundException e) {
                         Log.w(TAG,"Unable to get category ID for "+name);
@@ -235,7 +284,16 @@ public final class DatabaseBuilder {
                             String datasetName = dataset.text();
                             String datasetDesc = datasetDoc.select(DATASETS_DESC_SELECT).text();
 
-                            insertDataset(++datasetCount, categoryCount, datasetName, datasetDesc, link2);
+                            if(datasetDesc.trim().isEmpty()) datasetDesc = DatasetsOpenHelper.DEFAULT_DESC;
+
+                            //insertDataset(++datasetCount, categoryCount, datasetName, datasetDesc, link2);
+
+                            ContentValues data = new ContentValues();
+                            data.put("category_id", categoryId);
+                            data.put("dataset_name", datasetName);
+                            data.put("dataset_desc", datasetDesc);
+                            data.put("dataset_link", link2);
+                            datasetsHelper.upsert("dataset_link = ?", new String[]{link2}, data);
 
                         } catch (IOException e) {
                             failedDatasets.add(dataset.text());
@@ -291,11 +349,20 @@ public final class DatabaseBuilder {
         return datasetCount - originalDatasetCount;
     }
 
+    private static void setSynced(boolean value) {
+        synced = value;
+    }
+
+    public static boolean isSynced() {
+        return synced;
+    }
 
 
     public int populateDatasets() {
         final SQLiteDatabase db;
         final long           numEntries;
+
+        setSynced(false); // set synced value to false - meaning previously loaded locally
 
         int i = 0;
 
@@ -406,7 +473,7 @@ public final class DatabaseBuilder {
                 insertDataset(++i, 12, "Water Pressure Zones", "This polygon feature class represents each water pressure zone in the City of New Westminster water distribution system.", "http://opendata.newwestcity.ca/datasets/water-pressure-zones");
                 insertDataset(++i, 12, "Water Quality Data", "\nA hydrant is an outlet from a fluid main often consisting of an upright pipe with a valve attached from which fluid (e.g. water or fuel) can be tapped. This data set presents the raw data from which our Annual Water Quality report is generated.  For full context for the data please refer to the report.\nNWR Comp 2015.xlsm - Monthly bacteriological analysis of portable water samples\nNWR Numbers 2015.xlsm - Monthly samples for coliform bacteria\nNWR By-station 2015.xlsm - Full year water quality testing by station (addresses given are locations of the sampling station)\nNWR HPC 2015.xlsm - Monthly heterotrophic plate count\nNWR 4Q DBP.xlsm - 4th quarter disinfectant by product reports\n\n\n			XLSM (30 KB) | XLSM (75 KB) | XLSM (27 KB) | XLSX (44 KB) | XLSX (13 KB)\n	\n\n", "http://opendata.newwestcity.ca/datasets/water-quality-data");
                 insertDataset(++i, 12, "Water Valves", "A device that regulates the flow of water.\n\n", "http://opendata.newwestcity.ca/datasets/water-valves");
-                insertDataset(++i, 12, "Watermains", "A principal pipe in a system of pipes for conveying water, especially one installed underground.\n\n", "http://opendata.newwestcity.ca/datasets/watermains");
+                //insertDataset(++i, 12, "Watermains", "A principal pipe in a system of pipes for conveying water, especially one installed underground.\n\n", "http://opendata.newwestcity.ca/datasets/watermains");
 
 
                 // These are recently added... Instead of hard-coding them like the above, I enabled a sync task from CategoriesActivity to update the DB
