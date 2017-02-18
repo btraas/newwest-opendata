@@ -26,7 +26,7 @@ public abstract class OpenHelper
 {
     private static final String TAG = OpenHelper.class.getName();
     private static final int SCHEMA_VERSION = 1;
-    private static final String URI_BASE = "content://a00968178.comp3717.bcit.ca.opendata/";
+    private static final String URI_BASE = "content://ca.bcit.comp3717.a00968178.OpenData/";
 
     //private static final String DB_NAME = "categories.db";
     //public static final String NAME_TABLE_NAME = "categories";

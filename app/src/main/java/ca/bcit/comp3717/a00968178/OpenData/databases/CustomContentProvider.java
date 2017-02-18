@@ -109,10 +109,10 @@ public class CustomContentProvider
         switch(uriMatcher.match(uri))
         {
             case CATEGORIES_URI:
-                type = "vnd.android.cursor.dir/vnd.a00968178.comp3717.bcit.ca.opendata."+categoriesHelper.getDatabaseName();
+                type = "vnd.android.cursor.dir/vnd.ca.bcit.comp3717.a00968178.OpenData."+categoriesHelper.getDatabaseName();
                 break;
             case DATASETS_URI:
-                type = "vnd.android.cursor.dir/vnd.a00968178.comp3717.bcit.ca.opendata."+datasetsHelper.getDatabaseName();
+                type = "vnd.android.cursor.dir/vnd.ca.bcit.comp3717.a00968178.OpenData."+datasetsHelper.getDatabaseName();
                 break;
 
             default:
